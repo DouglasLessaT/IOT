@@ -1,0 +1,37 @@
+version: '3.9'
+
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"   # Porta para comunicação MQTT
+      - "9001:9001"   # Porta para WebSocket (se necessário)
+    volumes:
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_config:/mosquitto/config
+    networks:
+      - mqtt-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: python-app
+    volumes:
+      - .:/app
+    environment:
+      - MQTT_BROKER=mqtt-broker
+      - MQTT_PORT=1883
+    depends_on:
+      - mqtt-broker
+    networks:
+      - mqtt-network
+
+networks:
+  mqtt-network:
+    driver: bridge
+
+volumes:
+  mosquitto_data:
+  mosquitto_config:
