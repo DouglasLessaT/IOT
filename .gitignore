@@ -1,0 +1,16 @@
+# Ignora a pasta 'project' (substitua com o nome real da pasta, se necessário)
+project/
+
+# Ignora o arquivo secrets.h, onde as credenciais podem ser armazenadas
+secrets.h
+
+# Ignora o arquivo .env, onde variáveis de ambiente são armazenadas
+.env
+
+# Ignora os arquivos de compilação do Arduino (se você estiver usando)
+*.bin
+*.elf
+*.hex
+
+# Ignora pastas de compilação do Arduino
+/build/
