@@ -1,5 +1,5 @@
 -- Criação do banco de dados IOT
-CREATE DATABASE IF NOT EXISTS IOT;
+CREATE DATABASE IF NOT EXISTS IOTDB;
 
 -- Conectar-se ao banco de dados IOT
 \c IOT;
