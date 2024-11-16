@@ -1,3 +1,9 @@
+-- Criação do banco de dados IOT
+CREATE DATABASE IF NOT EXISTS IOT;
+
+-- Conectar-se ao banco de dados IOT
+\c IOT;
+
 -- Verifica se o usuário root_api já existe e cria se não existir
 DO $$
 BEGIN
@@ -6,12 +12,12 @@ BEGIN
     END IF;
 END $$;
 
--- Criação da tabela sensor_data com a coluna status e equipamento_ligado_em
+-- Criação da tabela sensor_data
 CREATE TABLE IF NOT EXISTS sensor_data (
     id SERIAL PRIMARY KEY,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ldr INT NOT NULL,
     relay BOOLEAN NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'active',  -- Coluna de status com valor padrão 'active'
-    Agenda TIMESTAMP  -- Coluna para armazenar a data e hora para ligar o equipamento
+    status VARCHAR(50) NOT NULL DEFAULT 'active',
+    agenda TIMESTAMP
 );

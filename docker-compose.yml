@@ -1,37 +1,58 @@
 version: '3.9'
 
 services:
-  mqtt-broker:
-    image: eclipse-mosquitto:2.0
-    container_name: mqtt-broker
-    ports:
-      - "1883:1883"   # Porta para comunicação MQTT
-      - "9001:9001"   # Porta para WebSocket (se necessário)
-    volumes:
-      - mosquitto_data:/mosquitto/data
-      - mosquitto_config:/mosquitto/config
+  api1:
+    build:
+      context: ./api1
+      dockerfile: Dockerfile
+    container_name: api1-service
+    environment:
+      - MQTT_BROKER=${BROKER_IP}
+      - MQTT_PORT=1883
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      - mqtt-broker
+      - db
     networks:
       - mqtt-network
 
-  app:
+  api2:
     build:
-      context: .
+      context: ./api2
       dockerfile: Dockerfile
-    container_name: python-app
-    volumes:
-      - .:/app
+    container_name: api2-service
     environment:
-      - MQTT_BROKER=mqtt-broker
+      - MQTT_BROKER=${BROKER_IP}
       - MQTT_PORT=1883
     depends_on:
       - mqtt-broker
     networks:
       - mqtt-network
 
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+    networks:
+      - mqtt-network
+
+  db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    networks:
+      - mqtt-network
+
 networks:
   mqtt-network:
     driver: bridge
-
-volumes:
-  mosquitto_data:
-  mosquitto_config:
