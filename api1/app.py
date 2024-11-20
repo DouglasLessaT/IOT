@@ -1,49 +1,94 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Importe o CORS
 import psycopg2
-import paho.mqtt.client as mqtt
-import json
+from datetime import datetime
+
+# Configuração do banco de dados
+DB_CONFIG = {
+    'dbname': 'iotdb',
+    'user': 'root_api',
+    'password': 'Douglas',
+    'host': 'localhost',
+    'port': '5432'
+}
+
+# Conectar ao banco de dados
+def get_db_connection():
+    conn = psycopg2.connect(**DB_CONFIG)
+    return conn
 
 app = Flask(__name__)
 
-# Configurações do banco de dados
-DB_HOST = "localhost"
-DB_PORT = 5432
-DB_USER = "your_user"
-DB_PASSWORD = "your_password"
-DB_NAME = "your_database"
+# Permitir CORS para todas as origens
+CORS(app)
 
-# Configurações do broker MQTT
-MQTT_BROKER = "mqtt-broker"
-MQTT_PORT = 1883
-MQTT_TOPIC = "esp32/command"
+# Rota para fazer POST e inserir novo TCC
+@app.route('/agenda', methods=['POST'])
+def add_agenda():
+    data = request.json
+    tcc = data.get('tcc')
+    datetime_field = data.get('datetime')  # Recebe data e hora
+    relay = data.get('relay', False)
 
-# Conexão com o banco de dados
-conn = psycopg2.connect(
-    database=DB_NAME, user=DB_USER, password=DB_PASSWORD, host=DB_HOST, port=DB_PORT
-)
-cursor = conn.cursor()
+    if not tcc or not datetime_field:
+        return jsonify({'error': 'Os campos "tcc" e "datetime" são obrigatórios!'}), 400
 
-# Configuração do cliente MQTT
-mqtt_client = mqtt.Client()
-mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-@app.route('/api/send', methods=['POST'])
-def send_command():
-    data = request.get_json()
-    id = data.get('id')
+        cursor.execute(
+            """
+            INSERT INTO sensor_data (relay, status, agenda)
+            VALUES (%s, 'Inative', %s) RETURNING id;
+            """,
+            (relay, datetime_field)
+        )
+        inserted_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-    # Obtém informações do banco de dados
-    cursor.execute("SELECT * FROM schedule WHERE id = %s", (id,))
-    record = cursor.fetchone()
+        return jsonify({'message': 'TCC adicionado com sucesso!', 'id': inserted_id}), 201
 
-    if not record:
-        return jsonify({"error": "ID não encontrado"}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-    # Envia mensagem ao broker MQTT
-    command = {"id": id, "action": "toggle_relay"}
-    mqtt_client.publish(MQTT_TOPIC, json.dumps(command))
+# Rota para fazer GET e obter dados para ESP32
+@app.route('/dados', methods=['GET'])
+def get_data():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
 
-    return jsonify({"message": "Comando enviado ao broker"}), 200
+        # Seleciona o próximo TCC com status "Inative" e agenda para agora ou anterior
+        cursor.execute(
+            """
+            SELECT id, agenda, relay FROM sensor_data
+            WHERE status = 'Inative' AND agenda <= NOW()
+            ORDER BY agenda ASC LIMIT 1;
+            """
+        )
+        data = cursor.fetchone()
+
+        if data:
+            id, datetime_field, relay = data
+            # Atualiza o status para "Active"
+            cursor.execute(
+                "UPDATE sensor_data SET status = 'Active' WHERE id = %s;",
+                (id,)
+            )
+            conn.commit()
+            response = {'id': id, 'agenda': datetime_field, 'relay': relay}
+        else:
+            response = {'message': 'Nenhuma agenda disponível.'}
+
+        cursor.close()
+        conn.close()
+        return jsonify(response), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=5000)

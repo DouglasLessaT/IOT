@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de TCC</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .form-container {
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Agenda de TCC</h1>
+  <div class="form-container">
+    <label for="tcc">TCC:</label>
+    <input type="text" id="tcc" placeholder="Digite o nome do TCC">
+    <label for="datetime">Data e Hora:</label>
+    <input type="datetime-local" id="datetime">
+    <button onclick="addTCC()">Adicionar</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Data e Hora</th>
+        <th>TCC</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody id="agenda">
+      <!-- Linhas de TCC serão carregadas aqui -->
+    </tbody>
+  </table>
+
+  <script>
+    // Função para adicionar um TCC
+    function addTCC() {
+  const tcc = document.getElementById("tcc").value;
+  const datetime = document.getElementById("datetime").value;
+
+  if (!tcc || !datetime) {
+    alert("Por favor, preencha todos os campos!");
+    return;
+  }
+
+  // Cria um objeto com os dados a serem enviados para a API
+  const data = {
+    tcc: tcc,
+    datetime: datetime
+  };
+
+  // Envia os dados para a API
+  fetch('http://127.0.0.1:5000/agenda', {  // Altere para a porta 5000
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  })
+  .then(response => response.json())
+  .then(data => {
+    // Após adicionar, limpa os campos de entrada e atualiza a lista
+    alert(data.message);
+    loadAgenda(); // Atualiza a lista de TCCs
+    document.getElementById("tcc").value = "";
+    document.getElementById("datetime").value = "";
+  })
+  .catch((error) => {
+    console.error('Erro:', error);
+    alert('Erro ao adicionar TCC');
+  });
+}
+
+// Função para carregar a agenda de TCCs da API
+function loadAgenda() {
+  fetch('http://127.0.0.1:5000/agenda')  // Altere para a porta 5000
+    .then(response => response.json())
+    .then(data => {
+      const table = document.getElementById("agenda");
+      table.innerHTML = ''; // Limpa a tabela antes de preencher
+
+      data.forEach((tcc) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${tcc.datetime}</td>
+          <td>${tcc.tcc}</td>
+          <td><button onclick="deleteTCC(this, ${tcc.id})">Remover</button></td>
+        `;
+        table.appendChild(row);
+      });
+    })
+    .catch((error) => {
+      console.error('Erro ao carregar agenda:', error);
+      alert('Erro ao carregar agenda');
+    });
+}
+
+    // Carrega a agenda ao carregar a página
+    window.onload = loadAgenda;
+  </script>
+</body>
+</html>
