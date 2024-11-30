@@ -38,10 +38,10 @@ def add_agenda():
 
         cursor.execute(
             """
-            INSERT INTO sensor_data (relay, status, agenda)
-            VALUES (%s, 'Inative', %s) RETURNING id;
+            INSERT INTO sensor_data (relay, status, agenda, tcc)
+            VALUES (%s, 'Inative', %s, %s) RETURNING id;
             """,
-            (relay, datetime_field)
+            (relay, datetime_field, tcc)
         )
         inserted_id = cursor.fetchone()[0]
         conn.commit()
@@ -53,9 +53,38 @@ def add_agenda():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
-    
+@app.route('/agenda', methods=['GET'])
+def get_agenda():
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, tcc, agenda FROM sensor_data ORDER BY agenda;")
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
+        response = [
+            {'id': row[0], 'tcc': row[1], 'agenda': row[2].strftime("%Y-%m-%d %H:%M:%S")} # Formato data legível
+            for row in data
+        ]
+        return jsonify(response), 200
 
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Delata o tcc 
+@app.route('/agenda/<int:id>', methods=['DELETE'])
+def delete_agenda(id):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM sensor_data WHERE id = %s;", (id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({'message': 'TCC removido com sucesso!'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/esp32', methods=['GET'])
 def get_data():
