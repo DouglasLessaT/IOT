@@ -16,7 +16,6 @@ DB_CONFIG = {
 def get_db_connection():
     conn = psycopg2.connect(**DB_CONFIG)
     return conn
-
 app = Flask(__name__)
 
 # Permitir CORS para todas as origens
@@ -53,9 +52,12 @@ def add_agenda():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+    
 
-# Rota para fazer GET e obter dados para ESP32
-@app.route('/dados', methods=['GET'])
+
+
+@app.route('/esp32', methods=['GET'])
 def get_data():
     try:
         conn = get_db_connection()

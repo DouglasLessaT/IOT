@@ -23,8 +23,9 @@ unsigned long relayTimer = 0; // Marca o tempo em que o relé foi ativado
 void setup() {
   Serial.begin(115200);
   pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);  // Garante que o relé comece desativado
-  irsend.begin(IR_LED_PIN);      // Inicializa o envio de IR com o pino especificado
+  relayState = false;
+  digitalWrite(RELAY_PIN, LOW); 
+  irsend.begin(IR_LED_PIN);
 
   // Conexão Wi-Fi
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -38,7 +39,7 @@ void setup() {
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
     HTTPClient http;
-    http.begin("http://192.168.0.122:5000/dados"); // URL da API
+    http.begin("http://192.168.0.219:5000/esp32"); // URL da API
 
     int httpResponseCode = http.GET();
 
@@ -59,8 +60,8 @@ void loop() {
       if (doc.containsKey("relay")) {
         bool relay = doc["relay"];
         if (relay && !relayState) {
-          digitalWrite(RELAY_PIN, HIGH);
-          irsend.sendNEC(0xF7C03F, 32);  // Envia sinal IR
+          digitalWrite(RELAY_PIN, HIGH);  // Liga o relé (lógica invertida)
+          irsend.sendNEC(0xF7C03F, 32); // Envia sinal IR
           Serial.println("Relé ligado e sinal IR enviado");
           relayState = true;
           relayTimer = millis(); // Inicia o temporizador
@@ -76,7 +77,7 @@ void loop() {
 
   // Verifica se o tempo de ativação do relé excedeu o limite
   if (relayState && (millis() - relayTimer >= RELAY_TIMEOUT_MS)) {
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN, HIGH); // Desliga o relé (lógica invertida)
     relayState = false;
     Serial.println("Relé desarmado automaticamente após o timeout");
   }
