@@ -96,9 +96,19 @@ function loadAgenda() {
       table.innerHTML = ''; // Limpa a tabela antes de preencher
 
       data.forEach((tcc) => {
+        // Formata a data no frontend
+        const date = new Date(tcc.agenda);
+        const formattedDate = date.toLocaleString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
         const row = document.createElement("tr");
         row.innerHTML = `
-          <td>${tcc.datetime}</td>
+          <td>${formattedDate}</td>
           <td>${tcc.tcc}</td>
           <td><button onclick="deleteTCC(this, ${tcc.id})">Remover</button></td>
         `;
@@ -109,6 +119,20 @@ function loadAgenda() {
       console.error('Erro ao carregar agenda:', error);
       alert('Erro ao carregar agenda');
     });
+}
+
+// Função para remover um TCC
+function deleteTCC(button, id) {
+  fetch(`http://127.0.0.1:5000/agenda/${id}`, { method: 'DELETE' })
+      .then(response => response.json())
+      .then(data => {
+          alert(data.message);
+          button.closest("tr").remove(); // Remove a linha da tabela
+      })
+      .catch(error => {
+          console.error('Erro ao remover TCC:', error);
+          alert('Erro ao remover TCC');
+      });
 }
 
     // Carrega a agenda ao carregar a página
